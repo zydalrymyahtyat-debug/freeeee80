@@ -33,9 +33,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Refresh stock check when building (e.g. returning from another screen)
-    _checkStock();
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('لوحة التحكم الرئيسية'),
