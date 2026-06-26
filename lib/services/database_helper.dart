@@ -1,6 +1,8 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/product.dart';
+import '../models/sale.dart';
+import '../models/sale_item.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -33,6 +35,27 @@ class DatabaseHelper {
         cost REAL NOT NULL,
         quantity INTEGER NOT NULL,
         barcode TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE sales(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        total REAL NOT NULL,
+        date TEXT NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE sale_items(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        saleId INTEGER NOT NULL,
+        productId INTEGER NOT NULL,
+        productName TEXT NOT NULL,
+        quantity INTEGER NOT NULL,
+        price REAL NOT NULL,
+        FOREIGN KEY(saleId) REFERENCES sales(id),
+        FOREIGN KEY(productId) REFERENCES products(id)
       )
     ''');
   }
@@ -68,5 +91,31 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  // Sales Operations
+  Future<int> saveSale(Sale sale, List<SaleItem> items) async {
+    final db = await database;
+    int saleId = 0;
+
+    await db.transaction((txn) async {
+      // 1. Insert Sale
+      saleId = await txn.insert('sales', sale.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+
+      // 2. Insert Sale Items and Update Product Quantities
+      for (var item in items) {
+        final itemMap = item.toMap();
+        itemMap['saleId'] = saleId; // Set the generated saleId
+        await txn.insert('sale_items', itemMap, conflictAlgorithm: ConflictAlgorithm.replace);
+
+        // Update product quantity
+        await txn.rawUpdate(
+          'UPDATE products SET quantity = quantity - ? WHERE id = ?',
+          [item.quantity, item.productId]
+        );
+      }
+    });
+
+    return saleId;
   }
 }

@@ -53,27 +53,46 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       leading: const CircleAvatar(child: Icon(Icons.inventory_2)),
                       title: Text(product.name),
                       subtitle: Text('الكمية: ${product.quantity} | السعر: \$${product.price.toStringAsFixed(2)}'),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              title: const Text('حذف المنتج'),
-                              content: const Text('هل أنت متأكد أنك تريد حذف هذا المنتج؟'),
-                              actions: [
-                                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.pop(ctx);
-                                    _deleteProduct(product.id!);
-                                  },
-                                  child: const Text('حذف', style: TextStyle(color: Colors.red)),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit, color: Colors.blue),
+                            onPressed: () async {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => AddProductScreen(product: product),
                                 ),
-                              ],
-                            ),
-                          );
-                        },
+                              );
+                              if (result == true) {
+                                _loadProducts();
+                              }
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('حذف المنتج'),
+                                  content: const Text('هل أنت متأكد أنك تريد حذف هذا المنتج؟'),
+                                  actions: [
+                                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.pop(ctx);
+                                        _deleteProduct(product.id!);
+                                      },
+                                      child: const Text('حذف', style: TextStyle(color: Colors.red)),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     );
                   },

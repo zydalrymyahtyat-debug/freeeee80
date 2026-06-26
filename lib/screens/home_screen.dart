@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'inventory_screen.dart';
+import 'pos_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -24,9 +25,9 @@ class HomeScreen extends StatelessWidget {
               icon: Icons.point_of_sale,
               color: Colors.blue,
               onTap: () {
-                // Navigate to POS Screen (To be implemented)
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('شاشة نقطة البيع قريباً!')),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const POSScreen()),
                 );
               },
             ),

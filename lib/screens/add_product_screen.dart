@@ -4,7 +4,8 @@ import '../services/database_helper.dart';
 import 'scanner_screen.dart';
 
 class AddProductScreen extends StatefulWidget {
-  const AddProductScreen({super.key});
+  final Product? product;
+  const AddProductScreen({super.key, this.product});
 
   @override
   State<AddProductScreen> createState() => _AddProductScreenState();
@@ -21,6 +22,18 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final DatabaseHelper _dbHelper = DatabaseHelper();
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.product != null) {
+      _nameController.text = widget.product!.name;
+      _priceController.text = widget.product!.price.toString();
+      _costController.text = widget.product!.cost.toString();
+      _quantityController.text = widget.product!.quantity.toString();
+      _barcodeController.text = widget.product!.barcode ?? '';
+    }
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     _priceController.dispose();
@@ -33,6 +46,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   void _saveProduct() async {
     if (_formKey.currentState!.validate()) {
       final newProduct = Product(
+        id: widget.product?.id,
         name: _nameController.text,
         price: double.tryParse(_priceController.text) ?? 0.0,
         cost: double.tryParse(_costController.text) ?? 0.0,
@@ -40,7 +54,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
         barcode: _barcodeController.text.isNotEmpty ? _barcodeController.text : null,
       );
 
-      await _dbHelper.insertProduct(newProduct);
+      if (widget.product == null) {
+        await _dbHelper.insertProduct(newProduct);
+      } else {
+        await _dbHelper.updateProduct(newProduct);
+      }
+
       if (mounted) {
         Navigator.pop(context, true); // Return true to indicate success
       }
@@ -51,7 +70,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('إضافة منتج'),
+        title: Text(widget.product == null ? 'إضافة منتج' : 'تعديل منتج'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

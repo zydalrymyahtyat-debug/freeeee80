@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:provider/provider.dart';
 import 'screens/home_screen.dart';
+import 'providers/cart_provider.dart';
 
 void main() {
-  runApp(const SmartPOSApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => CartProvider()),
+      ],
+      child: const SmartPOSApp(),
+    ),
+  );
 }
 
 class SmartPOSApp extends StatelessWidget {
