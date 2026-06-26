@@ -45,8 +45,21 @@ class _SmartPOSAppState extends State<SmartPOSApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       final settings = Provider.of<SettingsProvider>(context, listen: false);
-      // Only push AuthScreen if it's enabled and not already authenticating
-      if (settings.isBiometricEnabled && !AuthScreen.isAuthenticatingGlobal) {
+
+      // Only check for authentication if biometric is enabled
+      if (settings.isBiometricEnabled) {
+        // If AuthScreen is already visible, do nothing
+        if (AuthScreen.isAuthScreenVisible) return;
+
+        // If the user just successfully authenticated within the last 2 seconds,
+        // ignore this resume event. This prevents the immediate re-lock when
+        // returning from the system's biometric prompt.
+        final now = DateTime.now();
+        if (AuthScreen.lastSuccessTime != null) {
+          final diff = now.difference(AuthScreen.lastSuccessTime!);
+          if (diff.inSeconds < 2) return;
+        }
+
         navigatorKey.currentState?.push(
           MaterialPageRoute(builder: (_) => const AuthScreen(isFromBackground: true)),
         );

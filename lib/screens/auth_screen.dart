@@ -8,7 +8,10 @@ class AuthScreen extends StatefulWidget {
 
   const AuthScreen({super.key, this.isFromBackground = false});
 
-  static bool isAuthenticatingGlobal = false;
+  // Track if this screen is currently in the widget tree
+  static bool isAuthScreenVisible = false;
+  // Track the exact timestamp of successful authentication to prevent immediate re-locking
+  static DateTime? lastSuccessTime;
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -22,15 +25,21 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   void initState() {
     super.initState();
+    AuthScreen.isAuthScreenVisible = true;
     _authenticate();
   }
 
+  @override
+  void dispose() {
+    AuthScreen.isAuthScreenVisible = false;
+    super.dispose();
+  }
+
   Future<void> _authenticate() async {
-    if (AuthScreen.isAuthenticatingGlobal) return;
+    if (_isAuthenticating) return;
 
     bool authenticated = false;
     try {
-      AuthScreen.isAuthenticatingGlobal = true;
       setState(() {
         _isAuthenticating = true;
         _authorized = 'جاري التحقق...';
@@ -41,15 +50,12 @@ class _AuthScreenState extends State<AuthScreen> {
         biometricOnly: true,
       );
     } on PlatformException catch (e) {
-      AuthScreen.isAuthenticatingGlobal = false;
       setState(() {
         _isAuthenticating = false;
         _authorized = 'فشل التحقق: ${e.message}';
       });
       return;
     }
-
-    AuthScreen.isAuthenticatingGlobal = false;
 
     if (!mounted) return;
 
@@ -58,6 +64,7 @@ class _AuthScreenState extends State<AuthScreen> {
     });
 
     if (authenticated) {
+      AuthScreen.lastSuccessTime = DateTime.now();
       if (widget.isFromBackground) {
         Navigator.pop(context);
       } else {
