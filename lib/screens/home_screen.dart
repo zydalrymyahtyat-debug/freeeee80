@@ -1,16 +1,127 @@
 import 'package:flutter/material.dart';
 import 'inventory_screen.dart';
 import 'pos_screen.dart';
+import 'customers_screen.dart';
+import 'reports_screen.dart'; // We will create this next
+import 'settings_screen.dart';
+import 'backup_screen.dart';
+import '../services/database_helper.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final DatabaseHelper _dbHelper = DatabaseHelper();
+  bool _hasLowStock = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkStock();
+  }
+
+  Future<void> _checkStock() async {
+    final products = await _dbHelper.getProducts();
+    setState(() {
+      _hasLowStock = products.any((p) => p.quantity <= p.minQuantity);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Refresh stock check when building (e.g. returning from another screen)
+    _checkStock();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('لوحة التحكم الرئيسية'),
         centerTitle: true,
+        actions: [
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const InventoryScreen()),
+                  ).then((_) => _checkStock());
+                },
+              ),
+              if (_hasLowStock)
+                Positioned(
+                  right: 11,
+                  top: 11,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 12,
+                      minHeight: 12,
+                    ),
+                  ),
+                )
+            ],
+          ),
+        ],
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            const DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.blue,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.point_of_sale, size: 64, color: Colors.white),
+                  SizedBox(height: 8),
+                  Text('نقاط البيع الذكية', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text('الإعدادات والأمان'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.backup),
+              title: const Text('النسخ الاحتياطي'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const BackupScreen()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.info),
+              title: const Text('حول التطبيق'),
+              onTap: () {
+                showAboutDialog(
+                  context: context,
+                  applicationName: 'نقاط البيع الذكية',
+                  applicationVersion: '1.0.0',
+                  applicationIcon: const Icon(Icons.point_of_sale, size: 48, color: Colors.blue),
+                  children: const [
+                    Text('تطبيق شامل لإدارة المبيعات، المخزون، والعملاء بسهولة وبدون إنترنت.'),
+                  ]
+                );
+              },
+            ),
+          ],
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -40,6 +151,30 @@ class HomeScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const InventoryScreen()),
+                ).then((_) => _checkStock());
+              },
+            ),
+            _buildDashboardCard(
+              context,
+              title: 'إدارة العملاء',
+              icon: Icons.people,
+              color: Colors.green,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const CustomersScreen()),
+                );
+              },
+            ),
+            _buildDashboardCard(
+              context,
+              title: 'التقارير والأرباح',
+              icon: Icons.analytics,
+              color: Colors.purple,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ReportsScreen()),
                 );
               },
             ),

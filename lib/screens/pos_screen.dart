@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/product.dart';
 import '../models/sale.dart';
+import '../models/customer.dart';
 import '../services/database_helper.dart';
 import '../providers/cart_provider.dart';
+import '../providers/settings_provider.dart';
 import 'scanner_screen.dart';
+import 'invoice_preview_screen.dart';
 
 class POSScreen extends StatefulWidget {
   const POSScreen({super.key});
@@ -17,21 +20,25 @@ class _POSScreenState extends State<POSScreen> {
   final DatabaseHelper _dbHelper = DatabaseHelper();
   List<Product> _allProducts = [];
   List<Product> _filteredProducts = [];
+  List<Customer> _customers = [];
+  Customer? _selectedCustomer;
   bool _isLoading = true;
   final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _loadProducts();
+    _loadData();
   }
 
-  Future<void> _loadProducts() async {
+  Future<void> _loadData() async {
     setState(() => _isLoading = true);
     final products = await _dbHelper.getProducts();
+    final customers = await _dbHelper.getCustomers();
     setState(() {
       _allProducts = products;
       _filteredProducts = products;
+      _customers = customers;
       _isLoading = false;
     });
   }
@@ -51,19 +58,52 @@ class _POSScreenState extends State<POSScreen> {
     if (cart.items.isEmpty) return;
 
     final total = cart.totalAmount;
+
+    // Calculate profit
+    double totalProfit = 0.0;
+    for (var cartItem in cart.items.values) {
+      final profitPerItem = cartItem.product.price - cartItem.product.cost;
+      totalProfit += profitPerItem * cartItem.quantity;
+    }
+
     final now = DateTime.now().toIso8601String();
 
-    final sale = Sale(total: total, date: now);
-    final saleId = await _dbHelper.saveSale(sale, cart.toSaleItems(0));
+    final sale = Sale(
+      total: total,
+      profit: totalProfit,
+      date: now,
+      customerId: _selectedCustomer?.id,
+    );
+
+    final saleItems = cart.toSaleItems(0);
+    final saleId = await _dbHelper.saveSale(sale, saleItems);
 
     // Reload products to get updated quantities
-    await _loadProducts();
+    await _loadData();
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تم إتمام عملية البيع بنجاح! رقم الفاتورة: $saleId')),
+        SnackBar(content: Text('تم حفظ الفاتورة بنجاح! رقم: $saleId')),
       );
       cart.clear();
+      setState(() {
+        _selectedCustomer = null;
+      });
+
+      // Navigate to Invoice Preview
+      final finalSale = Sale(
+        id: saleId,
+        total: total,
+        profit: totalProfit,
+        date: now,
+        customerId: _selectedCustomer?.id,
+      );
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => InvoicePreviewScreen(sale: finalSale, items: saleItems),
+        ),
+      );
     }
   }
 
@@ -76,6 +116,7 @@ class _POSScreenState extends State<POSScreen> {
   @override
   Widget build(BuildContext context) {
     final cart = Provider.of<CartProvider>(context);
+    final settings = Provider.of<SettingsProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -83,9 +124,36 @@ class _POSScreenState extends State<POSScreen> {
       ),
       body: Column(
         children: [
-          // Search and Scanner Bar
+          // Customer Selection
           Padding(
             padding: const EdgeInsets.all(8.0),
+            child: DropdownButtonFormField<Customer>(
+              decoration: const InputDecoration(
+                labelText: 'تحديد العميل (اختياري)',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.person),
+              ),
+              items: [
+                const DropdownMenuItem<Customer>(
+                  value: null,
+                  child: Text('بدون عميل (نقدي)'),
+                ),
+                ..._customers.map((c) => DropdownMenuItem(
+                  value: c,
+                  child: Text(c.name),
+                )),
+              ],
+              onChanged: (val) {
+                setState(() {
+                  _selectedCustomer = val;
+                });
+              },
+            ),
+          ),
+
+          // Search and Scanner Bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
             child: Row(
               children: [
                 Expanded(
@@ -168,7 +236,7 @@ class _POSScreenState extends State<POSScreen> {
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     const SizedBox(height: 4),
-                                    Text('\$${product.price.toStringAsFixed(2)}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                                    Text(settings.formatCurrency(product.price), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
                                     const SizedBox(height: 4),
                                     Text(
                                       'المتوفر: ${product.quantity}',
@@ -219,7 +287,7 @@ class _POSScreenState extends State<POSScreen> {
                             final productId = cart.items.keys.toList()[index];
                             return ListTile(
                               title: Text(cartItem.product.name),
-                              subtitle: Text('\$${cartItem.product.price} x ${cartItem.quantity}'),
+                              subtitle: Text('${settings.formatCurrency(cartItem.product.price)} x ${cartItem.quantity}'),
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -253,7 +321,7 @@ class _POSScreenState extends State<POSScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'الإجمالي: \$${cart.totalAmount.toStringAsFixed(2)}',
+                        'الإجمالي: ${settings.formatCurrency(cart.totalAmount)}',
                         style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                       ElevatedButton(
