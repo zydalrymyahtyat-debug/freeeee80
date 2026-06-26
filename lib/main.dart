@@ -45,11 +45,10 @@ class _SmartPOSAppState extends State<SmartPOSApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       final settings = Provider.of<SettingsProvider>(context, listen: false);
-      if (settings.isBiometricEnabled) {
-        // If app comes from background and biometric is enabled,
-        // we push the AuthScreen using the global navigator key.
+      // Only push AuthScreen if it's enabled and not already authenticating
+      if (settings.isBiometricEnabled && !AuthScreen.isAuthenticatingGlobal) {
         navigatorKey.currentState?.push(
-          MaterialPageRoute(builder: (_) => const AuthScreen()),
+          MaterialPageRoute(builder: (_) => const AuthScreen(isFromBackground: true)),
         );
       }
     }

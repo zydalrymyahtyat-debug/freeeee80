@@ -4,7 +4,11 @@ import 'package:flutter/services.dart';
 import 'home_screen.dart';
 
 class AuthScreen extends StatefulWidget {
-  const AuthScreen({super.key});
+  final bool isFromBackground;
+
+  const AuthScreen({super.key, this.isFromBackground = false});
+
+  static bool isAuthenticatingGlobal = false;
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -22,8 +26,11 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _authenticate() async {
+    if (AuthScreen.isAuthenticatingGlobal) return;
+
     bool authenticated = false;
     try {
+      AuthScreen.isAuthenticatingGlobal = true;
       setState(() {
         _isAuthenticating = true;
         _authorized = 'جاري التحقق...';
@@ -33,10 +40,8 @@ class _AuthScreenState extends State<AuthScreen> {
         persistAcrossBackgrounding: true,
         biometricOnly: true,
       );
-      setState(() {
-        _isAuthenticating = false;
-      });
     } on PlatformException catch (e) {
+      AuthScreen.isAuthenticatingGlobal = false;
       setState(() {
         _isAuthenticating = false;
         _authorized = 'فشل التحقق: ${e.message}';
@@ -44,13 +49,23 @@ class _AuthScreenState extends State<AuthScreen> {
       return;
     }
 
+    AuthScreen.isAuthenticatingGlobal = false;
+
     if (!mounted) return;
 
+    setState(() {
+      _isAuthenticating = false;
+    });
+
     if (authenticated) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
+      if (widget.isFromBackground) {
+        Navigator.pop(context);
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      }
     } else {
       setState(() {
         _authorized = 'تم إلغاء التحقق';
@@ -60,7 +75,9 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -85,6 +102,7 @@ class _AuthScreenState extends State<AuthScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 }
