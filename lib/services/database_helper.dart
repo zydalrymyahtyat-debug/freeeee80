@@ -5,6 +5,8 @@ import '../models/sale.dart';
 import '../models/sale_item.dart';
 import '../models/customer.dart';
 import '../models/store_info.dart';
+import '../models/shortage_item.dart';
+import '../models/order.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -23,7 +25,7 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'smart_pos.db');
     return await openDatabase(
       path,
-      version: 2,
+      version: 4,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -90,6 +92,25 @@ class DatabaseHelper {
         FOREIGN KEY(productId) REFERENCES products(id)
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE shortages(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        requestedQuantity INTEGER NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE orders(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        supplier TEXT NOT NULL,
+        details TEXT NOT NULL,
+        expectedCost REAL NOT NULL,
+        status TEXT NOT NULL
+      )
+    ''');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -147,6 +168,29 @@ class DatabaseHelper {
       await db.execute('CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode)');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone)');
     }
+
+    if (oldVersion < 3) {
+      await db.execute('''
+        CREATE TABLE shortages(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          type TEXT NOT NULL,
+          requestedQuantity INTEGER NOT NULL
+        )
+      ''');
+    }
+
+    if (oldVersion < 4) {
+      await db.execute('''
+        CREATE TABLE orders(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          supplier TEXT NOT NULL,
+          details TEXT NOT NULL,
+          expectedCost REAL NOT NULL,
+          status TEXT NOT NULL
+        )
+      ''');
+    }
   }
 
   // CRUD Operations for Store Info
@@ -200,6 +244,54 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  // CRUD Operations for Shortages
+  Future<int> insertShortage(ShortageItem item) async {
+    final db = await database;
+    return await db.insert('shortages', item.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<ShortageItem>> getShortages() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('shortages');
+    return List.generate(maps.length, (i) {
+      return ShortageItem.fromMap(maps[i]);
+    });
+  }
+
+  Future<int> deleteShortage(int id) async {
+    final db = await database;
+    return await db.delete('shortages', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> clearShortages() async {
+    final db = await database;
+    return await db.delete('shortages');
+  }
+
+  // CRUD Operations for Orders
+  Future<int> insertOrder(OrderItem order) async {
+    final db = await database;
+    return await db.insert('orders', order.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<OrderItem>> getOrders() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('orders');
+    return List.generate(maps.length, (i) {
+      return OrderItem.fromMap(maps[i]);
+    });
+  }
+
+  Future<int> updateOrder(OrderItem order) async {
+    final db = await database;
+    return await db.update('orders', order.toMap(), where: 'id = ?', whereArgs: [order.id]);
+  }
+
+  Future<int> deleteOrder(int id) async {
+    final db = await database;
+    return await db.delete('orders', where: 'id = ?', whereArgs: [id]);
   }
 
   // CRUD Operations for Products

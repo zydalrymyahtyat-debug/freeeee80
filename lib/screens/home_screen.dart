@@ -5,6 +5,8 @@ import 'customers_screen.dart';
 import 'reports_screen.dart';
 import 'settings_screen.dart';
 import 'backup_screen.dart';
+import 'shortages_screen.dart';
+import 'orders_screen.dart';
 import '../services/database_helper.dart';
 import '../models/product.dart';
 import '../models/customer.dart';
@@ -185,6 +187,30 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: const [
                     Text('تطبيق شامل لإدارة المبيعات، المخزون، والعملاء بسهولة وبدون إنترنت.'),
                   ]
+                );
+              },
+            ),
+            _buildDashboardCard(
+              context,
+              title: 'تسجيل النواقص',
+              icon: Icons.inventory_2_outlined,
+              color: Colors.redAccent,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ShortagesScreen()),
+                );
+              },
+            ),
+            _buildDashboardCard(
+              context,
+              title: 'طلبيات التجار والصيانة',
+              icon: Icons.build_circle,
+              color: Colors.teal,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const OrdersScreen()),
                 );
               },
             ),

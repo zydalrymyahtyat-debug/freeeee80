@@ -86,44 +86,13 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         return;
                       }
 
-                      if (!ctx.mounted) return;
-                      showDialog(
-                        context: ctx,
-                        barrierDismissible: false,
-                        builder: (BuildContext dCtx) {
-                          return const Center(child: CircularProgressIndicator());
+                      final contact = await FlutterContacts.native.showPicker(properties: {ContactProperty.phone});
+                      if (contact != null && contact.phones.isNotEmpty) {
+                        phoneController.text = contact.phones.first.number;
+                        if (nameController.text.isEmpty) {
+                          nameController.text = contact.displayName ?? '';
                         }
-                      );
-
-                      final contacts = await FlutterContacts.getAll(properties: {ContactProperty.phone});
-
-                      if (!ctx.mounted) return;
-                      Navigator.pop(ctx); // Close loading indicator
-
-                      showModalBottomSheet(
-                        context: ctx,
-                        builder: (modalCtx) {
-                          return ListView.builder(
-                            itemCount: contacts.length,
-                            itemBuilder: (context, index) {
-                              final c = contacts[index];
-                              return ListTile(
-                                title: Text(c.displayName ?? ''),
-                                subtitle: Text(c.phones.isNotEmpty ? c.phones.first.number : 'لا يوجد رقم'),
-                                onTap: () {
-                                  if (c.phones.isNotEmpty) {
-                                    phoneController.text = c.phones.first.number;
-                                  }
-                                  if (nameController.text.isEmpty) {
-                                    nameController.text = c.displayName ?? '';
-                                  }
-                                  Navigator.pop(modalCtx);
-                                },
-                              );
-                            }
-                          );
-                        }
-                      );
+                      }
                     },
                   ),
                 ),
