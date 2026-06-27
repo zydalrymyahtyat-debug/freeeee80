@@ -10,6 +10,9 @@ class SettingsProvider with ChangeNotifier {
   bool get isDarkMode => _isDarkMode;
   bool get isBiometricEnabled => _isBiometricEnabled;
 
+  bool _isLoaded = false;
+  bool get isLoaded => _isLoaded;
+
   SettingsProvider() {
     _loadSettings();
   }
@@ -19,6 +22,7 @@ class SettingsProvider with ChangeNotifier {
     _currency = prefs.getString('currency') ?? 'YER';
     _isDarkMode = prefs.getBool('isDarkMode') ?? false;
     _isBiometricEnabled = prefs.getBool('isBiometricEnabled') ?? false;
+    _isLoaded = true;
     notifyListeners();
   }
 

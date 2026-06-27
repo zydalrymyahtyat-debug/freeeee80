@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'inventory_screen.dart';
 import 'pos_screen.dart';
 import 'customers_screen.dart';
-import 'reports_screen.dart'; // We will create this next
+import 'reports_screen.dart';
 import 'settings_screen.dart';
 import 'backup_screen.dart';
 import '../services/database_helper.dart';
+import '../models/product.dart';
+import '../models/customer.dart';
+import '../providers/settings_provider.dart';
+import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,23 +20,95 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final DatabaseHelper _dbHelper = DatabaseHelper();
-  bool _hasLowStock = false;
+  List<Product> _lowStockProducts = [];
+  List<Customer> _debtCustomers = [];
+  bool _hasNotifications = false;
 
   @override
   void initState() {
     super.initState();
-    _checkStock();
+    _checkNotifications();
   }
 
-  Future<void> _checkStock() async {
+  Future<void> _checkNotifications() async {
     final products = await _dbHelper.getProducts();
+    final customers = await _dbHelper.getCustomers();
+
     setState(() {
-      _hasLowStock = products.any((p) => p.quantity <= p.minQuantity);
+      _lowStockProducts = products.where((p) => p.quantity <= p.minQuantity).toList();
+      _debtCustomers = customers.where((c) => c.debt > 0).toList();
+      _hasNotifications = _lowStockProducts.isNotEmpty || _debtCustomers.isNotEmpty;
     });
+  }
+
+  void _showNotificationsSheet() {
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.5,
+          minChildSize: 0.3,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (ctx, scrollController) {
+            return Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  alignment: Alignment.center,
+                  child: const Text('مركز الإشعارات', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                ),
+                const Divider(),
+                if (!_hasNotifications)
+                  const Expanded(child: Center(child: Text('لا توجد إشعارات حالياً.'))),
+                if (_hasNotifications)
+                  Expanded(
+                    child: ListView(
+                      controller: scrollController,
+                      children: [
+                        if (_lowStockProducts.isNotEmpty) ...[
+                          const Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: Text('تنبيهات المخزون', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+                          ),
+                          ..._lowStockProducts.map((p) => ListTile(
+                                leading: const Icon(Icons.warning, color: Colors.red),
+                                title: Text(p.name),
+                                subtitle: Text('الكمية الحالية: ${p.quantity} (الحد الأدنى: ${p.minQuantity})'),
+                              )),
+                        ],
+                        if (_debtCustomers.isNotEmpty) ...[
+                          const Divider(),
+                          const Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: Text('تنبيهات المديونيات', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
+                          ),
+                          ..._debtCustomers.map((c) => ListTile(
+                                leading: const Icon(Icons.account_balance_wallet, color: Colors.orange),
+                                title: Text(c.name),
+                                subtitle: Text('المبلغ المستحق: ${settings.formatCurrency(c.debt)}'),
+                              )),
+                        ],
+                      ],
+                    ),
+                  ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    // Refresh stock check when building (e.g. returning from another screen)
+    _checkNotifications();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('لوحة التحكم الرئيسية'),
@@ -42,14 +118,9 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               IconButton(
                 icon: const Icon(Icons.notifications),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const InventoryScreen()),
-                  ).then((_) => _checkStock());
-                },
+                onPressed: _showNotificationsSheet,
               ),
-              if (_hasLowStock)
+              if (_hasNotifications)
                 Positioned(
                   right: 11,
                   top: 11,
@@ -148,7 +219,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const InventoryScreen()),
-                ).then((_) => _checkStock());
+                ).then((_) => _checkNotifications());
               },
             ),
             _buildDashboardCard(
@@ -160,7 +231,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const CustomersScreen()),
-                );
+                ).then((_) => _checkNotifications());
               },
             ),
             _buildDashboardCard(

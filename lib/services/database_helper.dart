@@ -62,6 +62,11 @@ class DatabaseHelper {
       )
     ''');
 
+    // Create Indexes for performance
+    await db.execute('CREATE INDEX idx_products_name ON products(name)');
+    await db.execute('CREATE INDEX idx_products_barcode ON products(barcode)');
+    await db.execute('CREATE INDEX idx_customers_phone ON customers(phone)');
+
     await db.execute('''
       CREATE TABLE sales(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -136,6 +141,11 @@ class DatabaseHelper {
           FOREIGN KEY(productId) REFERENCES products(id)
         )
       ''');
+
+      // Create Indexes for performance on upgraded databases
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_products_name ON products(name)');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode)');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone)');
     }
   }
 

@@ -43,9 +43,11 @@ dependencies:
     sdk: flutter
   shared_preferences: ^2.5.5
   local_auth: ^3.0.1
-  blue_thermal_printer: ^1.2.3
   share_plus: ^13.2.0
   intl: ^0.20.2
+  flutter_contacts: ^2.1.0
+  printing: ^5.14.3
+  pdf: ^3.12.0
 
 dev_dependencies:
   flutter_test:
@@ -100,3 +102,6 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+  assets:
+    - assets/fonts/Cairo-Regular.ttf

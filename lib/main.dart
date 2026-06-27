@@ -71,6 +71,12 @@ class _SmartPOSAppState extends State<SmartPOSApp> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
+        if (!settings.isLoaded) {
+          return const MaterialApp(
+            home: Scaffold(body: Center(child: CircularProgressIndicator())),
+            debugShowCheckedModeBanner: false,
+          );
+        }
         return MaterialApp(
           navigatorKey: navigatorKey,
           title: 'نقاط البيع الذكية',

@@ -5,6 +5,9 @@
 
     <!-- Permissions for blue_thermal_printer (Bluetooth) -->
     <uses-permission android:name="android.permission.BLUETOOTH" />
+
+    <!-- Permissions for flutter_contacts -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />

@@ -3,6 +3,7 @@ import '../models/customer.dart';
 import '../services/database_helper.dart';
 import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 
 class CustomersScreen extends StatefulWidget {
   const CustomersScreen({super.key});
@@ -67,7 +68,65 @@ class _CustomersScreenState extends State<CustomersScreen> {
               ),
               TextFormField(
                 controller: phoneController,
-                decoration: const InputDecoration(labelText: 'رقم الهاتف'),
+                decoration: InputDecoration(
+                  labelText: 'رقم الهاتف',
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.contacts, color: Colors.blue),
+                    onPressed: () async {
+                      bool isGranted = await FlutterContacts.permissions.has(PermissionType.read);
+                      if (!isGranted) {
+                        final status = await FlutterContacts.permissions.request(PermissionType.read);
+                        isGranted = status == PermissionStatus.granted || status == PermissionStatus.limited;
+                      }
+
+                      if (!isGranted) {
+                        if (formKey.currentContext != null) {
+                          ScaffoldMessenger.of(formKey.currentContext!).showSnackBar(const SnackBar(content: Text('الرجاء منح صلاحية الوصول لجهات الاتصال.')));
+                        }
+                        return;
+                      }
+
+                      if (!ctx.mounted) return;
+                      showDialog(
+                        context: ctx,
+                        barrierDismissible: false,
+                        builder: (BuildContext dCtx) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
+                      );
+
+                      final contacts = await FlutterContacts.getAll(properties: {ContactProperty.phone});
+
+                      if (!ctx.mounted) return;
+                      Navigator.pop(ctx); // Close loading indicator
+
+                      showModalBottomSheet(
+                        context: ctx,
+                        builder: (modalCtx) {
+                          return ListView.builder(
+                            itemCount: contacts.length,
+                            itemBuilder: (context, index) {
+                              final c = contacts[index];
+                              return ListTile(
+                                title: Text(c.displayName ?? ''),
+                                subtitle: Text(c.phones.isNotEmpty ? c.phones.first.number : 'لا يوجد رقم'),
+                                onTap: () {
+                                  if (c.phones.isNotEmpty) {
+                                    phoneController.text = c.phones.first.number;
+                                  }
+                                  if (nameController.text.isEmpty) {
+                                    nameController.text = c.displayName ?? '';
+                                  }
+                                  Navigator.pop(modalCtx);
+                                },
+                              );
+                            }
+                          );
+                        }
+                      );
+                    },
+                  ),
+                ),
                 keyboardType: TextInputType.phone,
                 validator: (val) => val == null || val.isEmpty ? 'مطلوب' : null,
               ),

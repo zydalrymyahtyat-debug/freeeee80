@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:smart_pos/main.dart';
 import 'package:smart_pos/providers/cart_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_pos/providers/settings_provider.dart';
 
 void main() {
@@ -10,6 +11,7 @@ void main() {
   setUpAll(() {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
+    SharedPreferences.setMockInitialValues({});
   });
 
   testWidgets('App loads and shows Dashboard', (WidgetTester tester) async {
@@ -24,10 +26,12 @@ void main() {
       ),
     );
 
-    // After updating to check biometric, we have to pump and wait
-    await tester.pumpAndSettle();
+    // Wait for the SettingsProvider to load and animations to complete
+    for(int i = 0; i < 5; i++) {
+      await tester.pump(const Duration(seconds: 1));
+    }
 
-    // Verify that either the Home Screen or Auth Screen is present.
+    // Verify that the Home Screen title is present.
     // By default SettingsProvider sets isBiometricEnabled to false, so HomeScreen should show up.
     expect(find.text('لوحة التحكم الرئيسية'), findsOneWidget);
 
