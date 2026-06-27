@@ -204,7 +204,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             _buildDashboardCard(
               context,
-              title: 'طلبيات التجار والصيانة',
+              title: 'طلبيات وصيانة',
               icon: Icons.build_circle,
               color: Colors.teal,
               onTap: () {

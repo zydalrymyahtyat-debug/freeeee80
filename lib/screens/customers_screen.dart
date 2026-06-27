@@ -88,7 +88,9 @@ class _CustomersScreenState extends State<CustomersScreen> {
 
                       final contact = await FlutterContacts.native.showPicker(properties: {ContactProperty.phone});
                       if (contact != null && contact.phones.isNotEmpty) {
-                        phoneController.text = contact.phones.first.number;
+                        String rawPhone = contact.phones.first.number;
+                        // Clean spaces/dashes that might mess up formatting
+                        phoneController.text = rawPhone.replaceAll(RegExp(r'[\s\-]'), '');
                         if (nameController.text.isEmpty) {
                           nameController.text = contact.displayName ?? '';
                         }
@@ -97,6 +99,8 @@ class _CustomersScreenState extends State<CustomersScreen> {
                   ),
                 ),
                 keyboardType: TextInputType.phone,
+                textDirection: TextDirection.ltr, // Force LTR for phone number to fix + code display
+                textAlign: TextAlign.right,
                 validator: (val) => val == null || val.isEmpty ? 'مطلوب' : null,
               ),
               TextFormField(

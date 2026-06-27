@@ -115,7 +115,12 @@ class _ShortagesScreenState extends State<ShortagesScreen> {
       pw.Page(
         pageFormat: format,
         textDirection: pw.TextDirection.rtl,
-        theme: pw.ThemeData.withFont(base: ttf),
+        theme: pw.ThemeData.withFont(
+          base: ttf,
+          bold: ttf,
+          italic: ttf,
+          boldItalic: ttf,
+        ),
         build: (pw.Context context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.stretch,
