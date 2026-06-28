@@ -4,6 +4,7 @@ class Product {
   final double price;
   final double cost;
   final int quantity;
+  final int minQuantity;
   final String? barcode;
 
   Product({
@@ -12,6 +13,7 @@ class Product {
     required this.price,
     required this.cost,
     required this.quantity,
+    this.minQuantity = 0,
     this.barcode,
   });
 
@@ -22,6 +24,7 @@ class Product {
       'price': price,
       'cost': cost,
       'quantity': quantity,
+      'minQuantity': minQuantity,
       'barcode': barcode,
     };
   }
@@ -33,6 +36,7 @@ class Product {
       price: map['price'],
       cost: map['cost'],
       quantity: map['quantity'],
+      minQuantity: map['minQuantity'] ?? 0,
       barcode: map['barcode'],
     );
   }
