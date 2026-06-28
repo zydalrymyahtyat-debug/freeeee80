@@ -125,28 +125,47 @@ class _POSScreenState extends State<POSScreen> {
       body: Column(
         children: [
           // Customer Selection
+          // Customer Selection (Autocomplete)
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: DropdownButtonFormField<Customer>(
-              decoration: const InputDecoration(
-                labelText: 'تحديد العميل (اختياري)',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.person),
-              ),
-              items: [
-                const DropdownMenuItem<Customer>(
-                  value: null,
-                  child: Text('بدون عميل (نقدي)'),
-                ),
-                ..._customers.map((c) => DropdownMenuItem(
-                  value: c,
-                  child: Text(c.name),
-                )),
-              ],
-              onChanged: (val) {
-                setState(() {
-                  _selectedCustomer = val;
+            child: Autocomplete<Customer>(
+              displayStringForOption: (Customer option) => option.name,
+              optionsBuilder: (TextEditingValue textEditingValue) {
+                if (textEditingValue.text == '') {
+                  return const Iterable<Customer>.empty();
+                }
+                final query = textEditingValue.text.toLowerCase();
+                return _customers.where((Customer option) {
+                  return option.name.toLowerCase().contains(query) ||
+                         option.phone.toLowerCase().contains(query);
                 });
+              },
+              onSelected: (Customer selection) {
+                setState(() {
+                  _selectedCustomer = selection;
+                });
+              },
+              fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                return TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  decoration: InputDecoration(
+                    labelText: 'ابحث عن عميل (بالاسم أو الرقم)',
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.person),
+                    suffixIcon: _selectedCustomer != null
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              controller.clear();
+                              setState(() {
+                                _selectedCustomer = null;
+                              });
+                            },
+                          )
+                        : null,
+                  ),
+                );
               },
             ),
           ),
@@ -285,31 +304,45 @@ class _POSScreenState extends State<POSScreen> {
                           itemBuilder: (context, index) {
                             final cartItem = cart.items.values.toList()[index];
                             final productId = cart.items.keys.toList()[index];
-                            return ListTile(
-                              title: Text(cartItem.product.name),
-                              subtitle: Text('${settings.formatCurrency(cartItem.product.price)} x ${cartItem.quantity}'),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.remove_circle_outline),
-                                    onPressed: () => cart.removeSingleItem(productId),
-                                  ),
-                                  Text('${cartItem.quantity}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                  IconButton(
-                                    icon: const Icon(Icons.add_circle_outline),
-                                    onPressed: () {
-                                       // Check stock before adding more
-                                       if (cartItem.quantity < cartItem.product.quantity) {
-                                          cart.addItem(cartItem.product);
-                                       } else {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('لا يوجد كمية كافية في المخزون!')),
-                                          );
-                                       }
-                                    },
-                                  ),
-                                ],
+                            return Dismissible(
+                              key: ValueKey(productId),
+                              background: Container(
+                                color: Theme.of(context).colorScheme.error,
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.only(right: 20),
+                                margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 4),
+                                child: const Icon(Icons.delete, color: Colors.white, size: 40),
+                              ),
+                              direction: DismissDirection.endToStart,
+                              onDismissed: (direction) {
+                                cart.removeItem(productId);
+                              },
+                              child: ListTile(
+                                title: Text(cartItem.product.name),
+                                subtitle: Text('${settings.formatCurrency(cartItem.product.price)} x ${cartItem.quantity}'),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.remove_circle_outline),
+                                      onPressed: () => cart.removeSingleItem(productId),
+                                    ),
+                                    Text('${cartItem.quantity}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                    IconButton(
+                                      icon: const Icon(Icons.add_circle_outline),
+                                      onPressed: () {
+                                         // Check stock before adding more
+                                         if (cartItem.quantity < cartItem.product.quantity) {
+                                            cart.addItem(cartItem.product);
+                                         } else {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(content: Text('لا يوجد كمية كافية في المخزون!')),
+                                            );
+                                         }
+                                      },
+                                    ),
+                                  ],
+                                ),
                               ),
                             );
                           },

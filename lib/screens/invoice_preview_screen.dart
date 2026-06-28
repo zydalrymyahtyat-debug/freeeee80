@@ -6,6 +6,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:url_launcher/url_launcher.dart';
 import '../models/sale.dart';
 import '../models/sale_item.dart';
 import '../models/store_info.dart';
@@ -139,7 +140,31 @@ class _InvoicePreviewScreenState extends State<InvoicePreviewScreen> {
     final settings = Provider.of<SettingsProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('معاينة وطباعة الفاتورة')),
+      appBar: AppBar(
+        title: const Text('معاينة وطباعة الفاتورة'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.share),
+            tooltip: 'مشاركة عبر واتساب',
+            onPressed: () async {
+              // Basic details to share via WhatsApp
+              String itemsList = widget.items.map((i) => '${i.productName} x${i.quantity}').join('\n');
+              String text = 'فاتورة مبيعات\nرقم الفاتورة: ${widget.sale.id}\n'
+                  'الإجمالي: ${settings.formatCurrency(widget.sale.total)}\n'
+                  'الأصناف:\n$itemsList\n\n'
+                  'شكراً لتعاملكم معنا!';
+              final Uri whatsappUri = Uri.parse('whatsapp://send?text=${Uri.encodeComponent(text)}');
+              if (await canLaunchUrl(whatsappUri)) {
+                await launchUrl(whatsappUri);
+              } else {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تطبيق واتساب غير مثبت على الجهاز.')));
+                }
+              }
+            },
+          ),
+        ],
+      ),
       body: PdfPreview(
         build: (format) => _generatePdf(format, settings).then((doc) => doc.save()),
         allowPrinting: true,

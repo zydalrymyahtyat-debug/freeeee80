@@ -7,6 +7,7 @@ import '../models/customer.dart';
 import '../models/store_info.dart';
 import '../models/shortage_item.dart';
 import '../models/order.dart';
+import '../models/maintenance_ticket.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -25,7 +26,7 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'smart_pos.db');
     return await openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -111,6 +112,23 @@ class DatabaseHelper {
         status TEXT NOT NULL
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE maintenance(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        customerName TEXT NOT NULL,
+        customerPhone TEXT NOT NULL,
+        deviceModel TEXT NOT NULL,
+        imei TEXT NOT NULL,
+        passcode TEXT NOT NULL,
+        taskType TEXT NOT NULL,
+        accessories TEXT NOT NULL,
+        estimatedCost REAL NOT NULL,
+        initialNotes TEXT NOT NULL,
+        status TEXT NOT NULL,
+        dateReceived TEXT NOT NULL
+      )
+    ''');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -191,6 +209,47 @@ class DatabaseHelper {
         )
       ''');
     }
+
+    if (oldVersion < 5) {
+      await db.execute('''
+        CREATE TABLE maintenance(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          customerName TEXT NOT NULL,
+          customerPhone TEXT NOT NULL,
+          deviceModel TEXT NOT NULL,
+          imei TEXT NOT NULL,
+          passcode TEXT NOT NULL,
+          taskType TEXT NOT NULL,
+          accessories TEXT NOT NULL,
+          estimatedCost REAL NOT NULL,
+          initialNotes TEXT NOT NULL,
+          status TEXT NOT NULL,
+          dateReceived TEXT NOT NULL
+        )
+      ''');
+    }
+  }
+
+  // CRUD Operations for Maintenance Tickets
+  Future<int> insertMaintenanceTicket(MaintenanceTicket ticket) async {
+    final db = await database;
+    return await db.insert('maintenance', ticket.toMap());
+  }
+
+  Future<List<MaintenanceTicket>> getMaintenanceTickets() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('maintenance', orderBy: 'id DESC');
+    return List.generate(maps.length, (i) => MaintenanceTicket.fromMap(maps[i]));
+  }
+
+  Future<int> updateMaintenanceTicket(MaintenanceTicket ticket) async {
+    final db = await database;
+    return await db.update('maintenance', ticket.toMap(), where: 'id = ?', whereArgs: [ticket.id]);
+  }
+
+  Future<int> deleteMaintenanceTicket(int id) async {
+    final db = await database;
+    return await db.delete('maintenance', where: 'id = ?', whereArgs: [id]);
   }
 
   // CRUD Operations for Store Info

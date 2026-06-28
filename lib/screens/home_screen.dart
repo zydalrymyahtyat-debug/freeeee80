@@ -7,6 +7,7 @@ import 'settings_screen.dart';
 import 'backup_screen.dart';
 import 'shortages_screen.dart';
 import 'orders_screen.dart';
+import 'maintenance_screen.dart';
 import '../services/database_helper.dart';
 import '../models/product.dart';
 import '../models/customer.dart';
@@ -190,30 +191,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
-            _buildDashboardCard(
-              context,
-              title: 'تسجيل النواقص',
-              icon: Icons.inventory_2_outlined,
-              color: Colors.redAccent,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ShortagesScreen()),
-                );
-              },
-            ),
-            _buildDashboardCard(
-              context,
-              title: 'طلبيات وصيانة',
-              icon: Icons.build_circle,
-              color: Colors.teal,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const OrdersScreen()),
-                );
-              },
-            ),
           ],
         ),
       ),
@@ -269,6 +246,42 @@ class _HomeScreenState extends State<HomeScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const ReportsScreen()),
+                );
+              },
+            ),
+            _buildDashboardCard(
+              context,
+              title: 'تسجيل النواقص',
+              icon: Icons.inventory_2_outlined,
+              color: Colors.redAccent,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ShortagesScreen()),
+                );
+              },
+            ),
+            _buildDashboardCard(
+              context,
+              title: 'طلبيات التجّار',
+              icon: Icons.local_shipping,
+              color: Colors.brown,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const OrdersScreen()),
+                );
+              },
+            ),
+            _buildDashboardCard(
+              context,
+              title: 'إدارة الصيانة',
+              icon: Icons.build_circle,
+              color: Colors.teal,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const MaintenanceScreen()),
                 );
               },
             ),
